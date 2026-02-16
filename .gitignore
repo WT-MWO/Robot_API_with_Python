@@ -2,3 +2,6 @@
 env/
 env\
 *.bak
+__pycache__
+*.vb
+*.png

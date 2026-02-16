@@ -1,7 +1,7 @@
 import clr
-# import numpy as np
-
-clr.AddReference(r"C:\Program Files\Autodesk\Robot Structural Analysis Professional 2023\Exe\Interop.RobotOM.dll")
+from PIL import ImageGrab
+from save_img import save_emf_as_png
+clr.AddReference(r"C:\Program Files\Autodesk\Robot Structural Analysis Professional 2025\Exe\Interop.RobotOM.dll")
 
 from RobotOM import *
 import RobotOM as rbt
@@ -84,7 +84,7 @@ record.SetValue(3, 1)  # Load factor
 record.Objects.FromText('all')
 
 # Live uniform load
-ll_value = -500  # N/m
+ll_value = -1500  # N/m
 case = rbt.IRobotSimpleCase(structure.Cases.Get(ll_number))
 record_index = case.Records.New(rbt.IRobotLoadRecordType.I_LRT_BAR_UNIFORM)
 record = rbt.IRobotLoadRecord(case.Records.Get(record_index))
@@ -103,12 +103,34 @@ case_factor_mng.New(1, 1.35)
 case_factor_mng.New(2, 1.5)
 
 # Calculate the model
+analysis_params = app.Project.CalcEngine.AnalysisParams
+analysis_params.IgnoreWarnings=True
 app.Project.CalcEngine.Calculate()
 
-# Display bending moment
+# # Display bending moment
 view = rbt.IRobotView3(project.ViewMngr.GetView(1))
 view.ParamsDiagram.Descriptions = rbt.IRobotViewDiagramDescriptionType.I_VDDT_LABELS  # IRobotViewDisplayParams
-view.ParamsDiagram.Set(rbt.IRobotViewDiagramResultType.I_VDRT_NTM_MY, True)
+view.ParamsDiagram.Set(rbt.IRobotViewDiagramResultType(5), True)
+
+
+# Refresh view
+app.Project.ViewMngr.Refresh()
+
+
+current_view = rbt.IRobotView3(project.ViewMngr.GetView(1))
+# current_view.CopyToClipboard()
+
+screen_params = rbt. IRobotViewScreenCaptureParams(app.CmpntFactory.Create(rbt.IRobotComponentType.I_CT_VIEW_SCREEN_CAPTURE_PARAMS))
+# screen_params.name = 'Test'
+screen_params.UpdateType = rbt.IRobotViewScreenCaptureUpdateType.I_SCUT_COPY_TO_CLIPBOARD
+
+view.MakeScreenCapture(screen_params)
+
+# TODO: Move to separate function, add more options to rotate and fit to screen
+
+# Save the screenshot
+path = "output.png"
+save_emf_as_png(path)
 
 
 print("Done.")
