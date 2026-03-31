@@ -1,18 +1,28 @@
-import clr
-# import numpy as np
+"""This example contains 'raw' python code to interact with Robot API.
+It is useful to understand the basics of syntax, however using pyrobotstructural package is recommended.
 
-clr.AddReference(r"C:\Program Files\Autodesk\Robot Structural Analysis Professional 2023\Exe\Interop.RobotOM.dll")
+Package pythonnet is required to run this code. It can be installed via pip.
 
-from RobotOM import *
+Note:
+1. The path to Interop.RobotOM.dll must be adjusted to match the installation path of Robot on your computer.
+2. You need to open blank model each time before running the script, otherwise it will fail.
+"""
+
+import clr  # pythonnet package
+
+
+clr.AddReference(
+    r"C:\Program Files\Autodesk\Robot Structural Analysis Professional 2026\Exe\Interop.RobotOM.dll"
+)
+
 import RobotOM as rbt
 
 # Connect to Robot
-app = RobotApplication()
+app = rbt.RobotApplication()
 
 project = app.Project
-structure = project.Structure #IRobotStructure
+structure = project.Structure  # IRobotStructure
 
-app.Project.Structure.Clear  # Clears previous structure
 
 # Create nodes
 nodes = structure.Nodes  # IRobotNodeServer
@@ -34,10 +44,10 @@ labels = structure.Labels  # IRobotLabelServer
 
 # Apply predefined pinned support
 node = nodes.Get(1)
-node.SetLabel(rbt.IRobotLabelType.I_LT_SUPPORT, 'Pinned')
+node.SetLabel(rbt.IRobotLabelType.I_LT_SUPPORT, "Pinned")
 
 # Define a new, custom, roller support
-support_name = 'Roller'
+support_name = "Roller"
 support_label = labels.Create(rbt.IRobotLabelType.I_LT_SUPPORT, support_name)
 support_data = rbt.IRobotNodeSupportData(support_label.Data)
 support_data.UX = 0
@@ -51,25 +61,25 @@ labels.Store(support_label)
 # Apply roller support to nodes
 for n in range(2, 5):
     node = nodes.Get(n)
-    node.SetLabel(rbt.IRobotLabelType.I_LT_SUPPORT, 'Roller')
+    node.SetLabel(rbt.IRobotLabelType.I_LT_SUPPORT, "Roller")
 
 # Apply section
 all_bars = bars.GetAll()
-for index in range(1, all_bars.Count+1):
+for index in range(1, all_bars.Count + 1):
     bar = rbt.IRobotBar(all_bars.Get(index))
     bar.SetLabel(rbt.IRobotLabelType.I_LT_BAR_SECTION, "IPE 100")
 
 # Create loadcases
 # Self-weight
 sw_number = 1
-sw_name = 'Self-weight'
+sw_name = "Self-weight"
 nature = rbt.IRobotCaseNature.I_CN_PERMANENT
 solver = rbt.IRobotCaseAnalizeType.I_CAT_STATIC_LINEAR
 structure.Cases.CreateSimple(sw_number, sw_name, nature, solver)
 
 # Live load
 ll_number = 2
-ll_name = 'Live load'
+ll_name = "Live load"
 nature = rbt.IRobotCaseNature.I_CN_EXPLOATATION
 structure.Cases.CreateSimple(ll_number, ll_name, nature, solver)
 
@@ -77,11 +87,15 @@ structure.Cases.CreateSimple(ll_number, ll_name, nature, solver)
 # Apply load
 # Self-weight
 case = rbt.IRobotSimpleCase(structure.Cases.Get(sw_number))
-record_index = case.Records.New(rbt.IRobotLoadRecordType.I_LRT_DEAD)  # Crate new record - returns an index of the record
-record = rbt.IRobotLoadRecord(case.Records.Get(record_index))  # Get newly created record by it's index
+record_index = case.Records.New(
+    rbt.IRobotLoadRecordType.I_LRT_DEAD
+)  # Crate new record - returns an index of the record
+record = rbt.IRobotLoadRecord(
+    case.Records.Get(record_index)
+)  # Get newly created record by it's index
 record.SetValue(2, -1)  # Sign for Z
 record.SetValue(3, 1)  # Load factor
-record.Objects.FromText('all')
+record.Objects.FromText("all")
 
 # Live uniform load
 ll_value = -500  # N/m
@@ -89,7 +103,7 @@ case = rbt.IRobotSimpleCase(structure.Cases.Get(ll_number))
 record_index = case.Records.New(rbt.IRobotLoadRecordType.I_LRT_BAR_UNIFORM)
 record = rbt.IRobotLoadRecord(case.Records.Get(record_index))
 record.SetValue(2, ll_value)
-record.Objects.FromText('all')
+record.Objects.FromText("all")
 
 # Create load combination
 comb_number = 3  # Or use: cases.FreeNumber
@@ -97,18 +111,28 @@ comb_name = "ULS 1"
 comb_type = rbt.IRobotCombinationType.I_CBT_ULS
 comb_nature = rbt.IRobotCaseNature.I_CN_PERMANENT
 comb_analize_type = rbt.IRobotCaseAnalizeType.I_CAT_COMB
-combination = structure.Cases.CreateCombination(comb_number, comb_name, comb_type, comb_nature, comb_analize_type)
+combination = structure.Cases.CreateCombination(
+    comb_number, comb_name, comb_type, comb_nature, comb_analize_type
+)
 case_factor_mng = combination.CaseFactors
 case_factor_mng.New(1, 1.35)
 case_factor_mng.New(2, 1.5)
 
 # Calculate the model
-app.Project.CalcEngine.Calculate()
+calc_engine = app.Project.CalcEngine
+calc_params = calc_engine.AnalysisParams
+calc_params.IgnoreWarnings = (
+    True  # Ignore warnings to ensure calculation does not stop.
+)
+
+calc_engine.Calculate()
 
 # Display bending moment
 view = rbt.IRobotView3(project.ViewMngr.GetView(1))
-view.ParamsDiagram.Descriptions = rbt.IRobotViewDiagramDescriptionType.I_VDDT_LABELS  # IRobotViewDisplayParams
+view.ParamsDiagram.Descriptions = (
+    rbt.IRobotViewDiagramDescriptionType.I_VDDT_LABELS
+)  # IRobotViewDisplayParams
 view.ParamsDiagram.Set(rbt.IRobotViewDiagramResultType.I_VDRT_NTM_MY, True)
-
+view.Redraw(0)  # Redraw the view
 
 print("Done.")
