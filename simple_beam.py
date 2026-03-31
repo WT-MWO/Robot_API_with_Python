@@ -98,7 +98,7 @@ record.SetValue(3, 1)  # Load factor
 record.Objects.FromText("all")
 
 # Live uniform load
-ll_value = -500  # N/m
+ll_value = -1500  # N/m
 case = rbt.IRobotSimpleCase(structure.Cases.Get(ll_number))
 record_index = case.Records.New(rbt.IRobotLoadRecordType.I_LRT_BAR_UNIFORM)
 record = rbt.IRobotLoadRecord(case.Records.Get(record_index))
@@ -127,7 +127,7 @@ calc_params.IgnoreWarnings = (
 
 calc_engine.Calculate()
 
-# Display bending moment
+# # Display bending moment
 view = rbt.IRobotView3(project.ViewMngr.GetView(1))
 view.ParamsDiagram.Descriptions = (
     rbt.IRobotViewDiagramDescriptionType.I_VDDT_LABELS
